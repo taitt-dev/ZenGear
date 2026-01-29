@@ -3,4 +3,7 @@
     <PackageReference Include="Ardalis.GuardClauses" />
     <PackageReference Include="MediatR.Contracts" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Entities\" />
+  </ItemGroup>
 </Project>
