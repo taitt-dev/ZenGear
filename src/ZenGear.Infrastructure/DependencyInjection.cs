@@ -53,6 +53,11 @@ public static class DependencyInjection
         // Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+        // ===== REPOSITORIES =====
+        
+        // Refresh Token Repository
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+
         // ===== IDENTITY =====
         services.AddIdentity<ApplicationUser, IdentityRole<long>>(options =>
         {
@@ -80,6 +85,9 @@ public static class DependencyInjection
 
         // ===== SERVICES =====
         
+        // HttpContextAccessor (required for CurrentUserService)
+        services.AddHttpContextAccessor();
+        
         // External ID Generator (singleton - stateless)
         services.AddSingleton<IExternalIdGenerator, NanoIdGenerator>();
 
@@ -89,7 +97,17 @@ public static class DependencyInjection
         // Current User service (scoped - per HTTP request)
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
-        // NOTE: Identity, Token, OTP, and Email services will be added in Phase 4
+        // Identity service (scoped - per HTTP request)
+        services.AddScoped<IIdentityService, IdentityService>();
+
+        // Token service (scoped - per HTTP request)
+        services.AddScoped<ITokenService, TokenService>();
+
+        // OTP service (scoped - per HTTP request)
+        services.AddScoped<IOtpService, OtpService>();
+
+        // Email service (scoped - per HTTP request)
+        services.AddScoped<IEmailService, EmailService>();
 
         return services;
     }

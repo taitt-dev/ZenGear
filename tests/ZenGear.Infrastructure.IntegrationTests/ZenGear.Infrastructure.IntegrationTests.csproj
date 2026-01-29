@@ -1,12 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <OutputType>Exe</OutputType>
-    <RootNamespace>ZenGear.Infrastructure.IntegrationTests</RootNamespace>
-    <TargetFramework>net10.0</TargetFramework>
-  </PropertyGroup>
+<PropertyGroup>
+  <ImplicitUsings>enable</ImplicitUsings>
+  <Nullable>enable</Nullable>
+  <OutputType>Exe</OutputType>
+  <RootNamespace>ZenGear.Infrastructure.IntegrationTests</RootNamespace>
+  <TargetFramework>net10.0</TargetFramework>
+  <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+</PropertyGroup>
 
   <ItemGroup>
     <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
@@ -19,6 +20,7 @@
   <ItemGroup>
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="Testcontainers.Redis" />
