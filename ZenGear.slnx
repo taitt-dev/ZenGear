@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/ZenGear.Api/ZenGear.Api.csproj" Id="eeb1e0cf-bc1d-4f42-b316-e2fc04fcbc97" />
+    <Project Path="src/ZenGear.Application/ZenGear.Application.csproj" Id="25af716b-2464-42e6-9b3c-a95514ecfa71" />
+    <Project Path="src/ZenGear.Domain/ZenGear.Domain.csproj" Id="ed432132-e28f-46f0-afcf-e8d17c8d34cf" />
+    <Project Path="src/ZenGear.Infrastructure/ZenGear.Infrastructure.csproj" Id="6cbb8104-cb43-4011-a20a-b40d3c45230b" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ZenGear.Application.UnitTests/ZenGear.Application.UnitTests.csproj" Id="89cb8498-4efb-4257-adfd-a5d59759abc3" />
+    <Project Path="tests/ZenGear.Architecture.Tests/ZenGear.Architecture.Tests.csproj" Id="bf0a0631-c88a-4b16-8170-c05e8897ea36" />
+    <Project Path="tests/ZenGear.Domain.UnitTests/ZenGear.Domain.UnitTests.csproj" Id="b026c061-73b0-4419-a89b-55312026ad1b" />
+    <Project Path="tests/ZenGear.Infrastructure.IntegrationTests/ZenGear.Infrastructure.IntegrationTests.csproj" Id="37d4b2d7-ad11-4967-9cc5-abfc21fbd41a" />
+  </Folder>
+</Solution>
