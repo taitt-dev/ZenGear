@@ -38,7 +38,10 @@ public static class DependencyInjection
         });
 
         // FluentValidation - automatic validator discovery
-        services.AddValidatorsFromAssembly(assembly);
+        // Exclude ExternalIdValidator (requires parameters, used inline)
+        services.AddValidatorsFromAssembly(
+            assembly,
+            filter: scanResult => scanResult.ValidatorType != typeof(Common.Validators.ExternalIdValidator));
 
         // AutoMapper - DTO mapping (discovers all Profile classes in assembly)
         services.AddAutoMapper(cfg =>

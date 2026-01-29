@@ -10,14 +10,18 @@ public interface ITokenService
 {
     /// <summary>
     /// Generate JWT access token.
-    /// Token contains ExternalId in "sub" claim (NOT internal long Id).
+    /// Token contains:
+    /// - "sub" claim: ExternalId (string, e.g., usr_xxx) - for API responses
+    /// - "nameid" claim: Internal UserId (long) - for internal operations
     /// </summary>
+    /// <param name="userId">Internal user ID (long)</param>
     /// <param name="userExternalId">User external ID (e.g., usr_xxx)</param>
     /// <param name="email">User email</param>
     /// <param name="fullName">User full name</param>
     /// <param name="roles">User roles</param>
     /// <returns>JWT token string</returns>
     string GenerateAccessToken(
+        long userId,
         string userExternalId,
         string email,
         string fullName,

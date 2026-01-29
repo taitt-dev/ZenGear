@@ -43,6 +43,19 @@ public static class ErrorCodes
         public const string AlreadyExists = "USER_ALREADY_EXISTS";
         public const string CannotUpdate = "USER_CANNOT_UPDATE";
         public const string CannotDelete = "USER_CANNOT_DELETE";
+        public const string InvalidCredentials = "USER_INVALID_CREDENTIALS";
+        public const string EmailNotVerified = "USER_EMAIL_NOT_VERIFIED";
+        public const string EmailAlreadyVerified = "USER_EMAIL_ALREADY_VERIFIED";
+        public const string AccountLocked = "USER_ACCOUNT_LOCKED";
+        public const string InvalidOtpCode = "USER_INVALID_OTP_CODE";
+        public const string OtpRateLimitExceeded = "USER_OTP_RATE_LIMIT_EXCEEDED";
+        public const string EmailVerificationFailed = "USER_EMAIL_VERIFICATION_FAILED";
+        public const string RegistrationFailed = "USER_REGISTRATION_FAILED";
+        public const string PasswordChangeFailed = "USER_PASSWORD_CHANGE_FAILED";
+        public const string PasswordResetFailed = "USER_PASSWORD_RESET_FAILED";
+        public const string InvalidRefreshToken = "USER_INVALID_REFRESH_TOKEN";
+        public const string RefreshTokenExpired = "USER_REFRESH_TOKEN_EXPIRED";
+        public const string EmailSendFailed = "USER_EMAIL_SEND_FAILED";
     }
 
     /// <summary>
