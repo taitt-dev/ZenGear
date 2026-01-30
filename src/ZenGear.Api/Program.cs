@@ -130,7 +130,7 @@ builder.Services.AddCors(options =>
                 ?? ["http://localhost:3000"])
             .AllowAnyMethod()
             .AllowAnyHeader()
-            .AllowCredentials();
+            .AllowCredentials(); // Required for httpOnly cookies
     });
 });
 

@@ -5,6 +5,7 @@ using ZenGear.Application.Common.Constants;
 using ZenGear.Application.Common.Interfaces;
 using ZenGear.Application.Features.Authentication.Commands.VerifyEmail;
 using ZenGear.Domain.Enums;
+using ZenGear.Domain.Repositories;
 
 namespace ZenGear.Application.UnitTests.Features.Authentication.Commands;
 
@@ -16,6 +17,8 @@ public class VerifyEmailHandlerTests
     private readonly Mock<IIdentityService> _identityServiceMock;
     private readonly Mock<IOtpService> _otpServiceMock;
     private readonly Mock<IEmailService> _emailServiceMock;
+    private readonly Mock<ITokenService> _tokenServiceMock;
+    private readonly Mock<IRefreshTokenRepository> _refreshTokenRepositoryMock;
     private readonly VerifyEmailHandler _handler;
 
     public VerifyEmailHandlerTests()
@@ -23,15 +26,19 @@ public class VerifyEmailHandlerTests
         _identityServiceMock = new Mock<IIdentityService>();
         _otpServiceMock = new Mock<IOtpService>();
         _emailServiceMock = new Mock<IEmailService>();
+        _tokenServiceMock = new Mock<ITokenService>();
+        _refreshTokenRepositoryMock = new Mock<IRefreshTokenRepository>();
 
         _handler = new VerifyEmailHandler(
             _identityServiceMock.Object,
             _otpServiceMock.Object,
-            _emailServiceMock.Object);
+            _emailServiceMock.Object,
+            _tokenServiceMock.Object,
+            _refreshTokenRepositoryMock.Object);
     }
 
     [Fact]
-    public async Task Handle_WithValidOtp_ShouldVerifyEmail()
+    public async Task Handle_WithValidOtp_ShouldVerifyEmailAndReturnTokens()
     {
         // Arrange
         var command = new VerifyEmailCommand
@@ -70,15 +77,70 @@ public class VerifyEmailHandlerTests
             .Setup(x => x.ConfirmEmailAsync(userInfo.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
+        _identityServiceMock
+            .Setup(x => x.GetByIdAsync(userInfo.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UserInfo
+            {
+                Id = userInfo.Id,
+                ExternalId = userInfo.ExternalId,
+                Email = userInfo.Email,
+                FirstName = userInfo.FirstName,
+                LastName = userInfo.LastName,
+                AvatarUrl = userInfo.AvatarUrl,
+                Status = userInfo.Status,
+                EmailConfirmed = true,
+                Roles = userInfo.Roles,
+                CreatedAt = userInfo.CreatedAt
+            });
+
+        var accessToken = "test-access-token";
+        var refreshToken = "test-refresh-token";
+        var expiresAt = DateTimeOffset.UtcNow.AddMinutes(15);
+
+        _tokenServiceMock
+            .Setup(x => x.GenerateAccessToken(
+                userInfo.Id,
+                userInfo.ExternalId,
+                userInfo.Email,
+                userInfo.FullName,
+                It.IsAny<string[]>()))
+            .Returns(accessToken);
+
+        _tokenServiceMock
+            .Setup(x => x.GenerateRefreshToken())
+            .Returns(refreshToken);
+
+        _tokenServiceMock
+            .Setup(x => x.GetAccessTokenExpiration())
+            .Returns(expiresAt);
+
+        _tokenServiceMock
+            .Setup(x => x.GetRefreshTokenExpiration())
+            .Returns(DateTimeOffset.UtcNow.AddDays(7));
+
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
 
         // Assert
         result.Should().NotBeNull();
         result.Succeeded.Should().BeTrue();
+        result.Data.Should().NotBeNull();
+        result.Data!.AccessToken.Should().Be(accessToken);
+        result.Data.RefreshToken.Should().Be(refreshToken);
+        result.Data.User.Id.Should().Be(userInfo.ExternalId);
+        result.Data.User.Email.Should().Be(userInfo.Email);
+        result.Data.User.EmailConfirmed.Should().BeTrue();
 
         _identityServiceMock.Verify(
             x => x.ConfirmEmailAsync(userInfo.Id, It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        _refreshTokenRepositoryMock.Verify(
+            x => x.CreateAsync(
+                userInfo.Id,
+                refreshToken,
+                It.IsAny<DateTimeOffset>(),
+                It.IsAny<CancellationToken>()),
             Times.Once);
 
         _emailServiceMock.Verify(

@@ -128,7 +128,9 @@ public class AuthenticationWorkflowTests : IAsyncDisposable
         var verifyHandler = new VerifyEmailHandler(
             _identityService,
             _otpService,
-            null!);
+            null!,
+            _tokenService,
+            _refreshTokenRepository);
 
         var verifyResult = await verifyHandler.Handle(new VerifyEmailCommand
         {
@@ -138,6 +140,11 @@ public class AuthenticationWorkflowTests : IAsyncDisposable
 
         // Assert verification
         verifyResult.Succeeded.Should().BeTrue();
+        verifyResult.Data.Should().NotBeNull();
+        verifyResult.Data!.AccessToken.Should().NotBeNullOrEmpty();
+        verifyResult.Data.RefreshToken.Should().NotBeNullOrEmpty();
+        verifyResult.Data.User.Id.Should().Be(userExternalId);
+        verifyResult.Data.User.EmailConfirmed.Should().BeTrue();
 
         // User should now be confirmed
         var confirmedUser = await _context.Users.FirstAsync(u => u.Id == user.Id);
@@ -447,7 +454,9 @@ public class AuthenticationWorkflowTests : IAsyncDisposable
         var verifyHandler = new VerifyEmailHandler(
             _identityService,
             _otpService,
-            null!);
+            null!,
+            _tokenService,
+            _refreshTokenRepository);
 
         var firstVerify = await verifyHandler.Handle(new VerifyEmailCommand
         {
@@ -456,6 +465,8 @@ public class AuthenticationWorkflowTests : IAsyncDisposable
         }, default);
 
         firstVerify.Succeeded.Should().BeTrue();
+        firstVerify.Data.Should().NotBeNull();
+        firstVerify.Data!.AccessToken.Should().NotBeNullOrEmpty();
 
         // ========== STEP 3: Try to reuse same OTP (should fail) ==========
         var secondVerify = await verifyHandler.Handle(new VerifyEmailCommand
@@ -500,7 +511,9 @@ public class AuthenticationWorkflowTests : IAsyncDisposable
         var verifyHandler = new VerifyEmailHandler(
             _identityService,
             _otpService,
-            null!);
+            null!,
+            _tokenService,
+            _refreshTokenRepository);
 
         var verifyResult = await verifyHandler.Handle(new VerifyEmailCommand
         {

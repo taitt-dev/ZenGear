@@ -2,34 +2,38 @@ using MediatR;
 using ZenGear.Application.Common.Constants;
 using ZenGear.Application.Common.Interfaces;
 using ZenGear.Application.Common.Models;
+using ZenGear.Application.Features.Authentication.DTOs;
 using ZenGear.Domain.Enums;
+using ZenGear.Domain.Repositories;
 
 namespace ZenGear.Application.Features.Authentication.Commands.VerifyEmail;
 
 /// <summary>
 /// Handler for VerifyEmailCommand.
-/// Validates OTP and confirms user email.
+/// Validates OTP, confirms user email, and returns authentication tokens.
 /// </summary>
 public class VerifyEmailHandler(
     IIdentityService identityService,
     IOtpService otpService,
-    IEmailService emailService)
-    : IRequestHandler<VerifyEmailCommand, Result>
+    IEmailService emailService,
+    ITokenService tokenService,
+    IRefreshTokenRepository refreshTokenRepository)
+    : IRequestHandler<VerifyEmailCommand, Result<AuthenticationDto>>
 {
-    public async Task<Result> Handle(VerifyEmailCommand request, CancellationToken ct)
+    public async Task<Result<AuthenticationDto>> Handle(VerifyEmailCommand request, CancellationToken ct)
     {
         // Get user by email
         var userInfo = await identityService.GetByEmailAsync(request.Email, ct);
 
         if (userInfo == null)
         {
-            return Result.Failure("User not found.", ErrorCodes.User.NotFound);
+            return Result<AuthenticationDto>.Failure("User not found.", ErrorCodes.User.NotFound);
         }
 
         // Check if already verified
         if (userInfo.EmailConfirmed)
         {
-            return Result.Failure("Email already verified.", ErrorCodes.User.EmailAlreadyVerified);
+            return Result<AuthenticationDto>.Failure("Email already verified.", ErrorCodes.User.EmailAlreadyVerified);
         }
 
         // Validate OTP
@@ -41,7 +45,7 @@ public class VerifyEmailHandler(
 
         if (!isValidOtp)
         {
-            return Result.Failure(
+            return Result<AuthenticationDto>.Failure(
                 "Invalid or expired verification code.",
                 ErrorCodes.User.InvalidOtpCode);
         }
@@ -51,12 +55,12 @@ public class VerifyEmailHandler(
 
         if (!confirmed)
         {
-            return Result.Failure(
+            return Result<AuthenticationDto>.Failure(
                 "Failed to verify email.",
                 ErrorCodes.User.EmailVerificationFailed);
         }
 
-        // Send welcome email
+        // Send welcome email (don't fail if this fails)
         try
         {
             await emailService.SendWelcomeEmailAsync(
@@ -66,9 +70,47 @@ public class VerifyEmailHandler(
         }
         catch
         {
-            // Don't fail if welcome email fails
+            // Ignore welcome email failures
         }
 
-        return Result.Success();
+        // Generate tokens (auto-login after verification)
+        var accessToken = tokenService.GenerateAccessToken(
+            userInfo.Id,
+            userInfo.ExternalId,
+            userInfo.Email,
+            userInfo.FullName,
+            [.. userInfo.Roles]);
+
+        var refreshToken = tokenService.GenerateRefreshToken();
+
+        // Store refresh token
+        await refreshTokenRepository.CreateAsync(
+            userInfo.Id,
+            refreshToken,
+            tokenService.GetRefreshTokenExpiration(),
+            ct);
+
+        // Get updated user info with roles
+        var updatedUserInfo = await identityService.GetByIdAsync(userInfo.Id, ct);
+
+        var authResponse = new AuthenticationDto
+        {
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
+            ExpiresAt = tokenService.GetAccessTokenExpiration(),
+            User = new UserDto
+            {
+                Id = updatedUserInfo!.ExternalId,
+                Email = updatedUserInfo.Email,
+                FirstName = updatedUserInfo.FirstName,
+                LastName = updatedUserInfo.LastName,
+                FullName = updatedUserInfo.FullName,
+                AvatarUrl = updatedUserInfo.AvatarUrl,
+                Roles = [.. updatedUserInfo.Roles],
+                EmailConfirmed = true
+            }
+        };
+
+        return Result<AuthenticationDto>.Success(authResponse);
     }
 }
