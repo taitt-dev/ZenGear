@@ -7,6 +7,7 @@ using ZenGear.Application.Features.Authentication.Commands.ChangePassword;
 using ZenGear.Application.Features.Authentication.Commands.ForgotPassword;
 using ZenGear.Application.Features.Authentication.Commands.Login;
 using ZenGear.Application.Features.Authentication.Commands.Logout;
+using ZenGear.Application.Features.Authentication.Commands.LogoutAll;
 using ZenGear.Application.Features.Authentication.Commands.RefreshToken;
 using ZenGear.Application.Features.Authentication.Commands.Register;
 using ZenGear.Application.Features.Authentication.Commands.ResendVerificationEmail;
@@ -179,6 +180,30 @@ public class AuthenticationController(ISender sender) : ControllerBase
         }
 
         return BadRequest(ApiResponse.Failure(result.Errors, result.ErrorCode));
+    }
+
+    /// <summary>
+    /// Logout from all devices.
+    /// Revokes all refresh tokens and updates security stamp to invalidate all existing access tokens.
+    /// User must re-authenticate on all devices.
+    /// </summary>
+    /// <param name="ct">Cancellation token</param>
+    /// <response code="200">Logged out from all devices successfully</response>
+    /// <response code="401">User not authenticated</response>
+    [HttpPost("logout-all")]
+    [Authorize]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> LogoutAll(CancellationToken ct)
+    {
+        var result = await sender.Send(new LogoutAllCommand(), ct);
+
+        if (result.Succeeded)
+        {
+            return Ok(ApiResponse.Success());
+        }
+
+        return Unauthorized(ApiResponse.Failure(result.Errors, result.ErrorCode));
     }
 
     /// <summary>

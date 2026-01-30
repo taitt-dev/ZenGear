@@ -72,6 +72,12 @@ builder.Services.AddApiVersioning(options =>
     options.SubstituteApiVersionInUrl = true;
 });
 
+// ===== RATE LIMITING =====
+
+builder.Services.Configure<RateLimitOptions>(
+    builder.Configuration.GetSection(RateLimitOptions.SectionName));
+builder.Services.AddMemoryCache();
+
 // ===== CONTROLLERS & OPENAPI =====
 
 builder.Services.AddControllers();
@@ -175,6 +181,9 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseCors();
+
+// Rate limiting middleware (before authentication)
+app.UseMiddleware<RateLimitMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

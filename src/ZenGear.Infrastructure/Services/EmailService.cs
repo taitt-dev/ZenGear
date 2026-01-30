@@ -150,10 +150,9 @@ public class EmailService : IEmailService
             var smtpHost = emailSettings["SmtpHost"]
                 ?? throw new InvalidOperationException("SmtpHost not configured.");
             var smtpPort = int.Parse(emailSettings["SmtpPort"] ?? "587");
-            var smtpUser = emailSettings["SmtpUser"]
-                ?? throw new InvalidOperationException("SmtpUser not configured.");
-            var smtpPassword = emailSettings["SmtpPassword"]
-                ?? throw new InvalidOperationException("SmtpPassword not configured.");
+            var smtpUser = emailSettings["SmtpUser"] ?? string.Empty;
+            var smtpPassword = emailSettings["SmtpPassword"] ?? string.Empty;
+            var enableSsl = bool.Parse(emailSettings["EnableSsl"] ?? "true");
 
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress(fromName, fromEmail));
@@ -168,11 +167,19 @@ public class EmailService : IEmailService
 
             using var client = new SmtpClient();
 
-            // Connect to SMTP server
-            await client.ConnectAsync(smtpHost, smtpPort, SecureSocketOptions.StartTls, ct);
+            // Determine SecureSocketOptions based on EnableSsl setting
+            var secureSocketOptions = enableSsl
+                ? SecureSocketOptions.StartTls
+                : SecureSocketOptions.None;
 
-            // Authenticate
-            await client.AuthenticateAsync(smtpUser, smtpPassword, ct);
+            // Connect to SMTP server
+            await client.ConnectAsync(smtpHost, smtpPort, secureSocketOptions, ct);
+
+            // Authenticate (skip if credentials are empty - for MailHog)
+            if (!string.IsNullOrWhiteSpace(smtpUser) && !string.IsNullOrWhiteSpace(smtpPassword))
+            {
+                await client.AuthenticateAsync(smtpUser, smtpPassword, ct);
+            }
 
             // Send email
             await client.SendAsync(message, ct);

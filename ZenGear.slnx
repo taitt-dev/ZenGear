@@ -15,5 +15,6 @@
     <Project Path="tests/ZenGear.Architecture.Tests/ZenGear.Architecture.Tests.csproj" Id="bf0a0631-c88a-4b16-8170-c05e8897ea36" />
     <Project Path="tests/ZenGear.Domain.UnitTests/ZenGear.Domain.UnitTests.csproj" Id="b026c061-73b0-4419-a89b-55312026ad1b" />
     <Project Path="tests/ZenGear.Infrastructure.IntegrationTests/ZenGear.Infrastructure.IntegrationTests.csproj" Id="37d4b2d7-ad11-4967-9cc5-abfc21fbd41a" />
+    <Project Path="tests/ZenGear.Infrastructure.UnitTests/ZenGear.Infrastructure.UnitTests.csproj" />
   </Folder>
 </Solution>

@@ -37,6 +37,24 @@ public class LoginHandler(
                 ErrorCodes.User.EmailNotVerified);
         }
 
+        // Check if account is locked out
+        var isLockedOut = await identityService.IsLockedOutAsync(userInfo.Id, ct);
+        if (isLockedOut)
+        {
+            var lockoutEnd = await identityService.GetLockoutEndAsync(userInfo.Id, ct);
+            var remainingMinutes = lockoutEnd.HasValue
+                ? Math.Ceiling((lockoutEnd.Value - DateTimeOffset.UtcNow).TotalMinutes)
+                : 0;
+
+            var message = remainingMinutes > 0
+                ? $"Account is locked due to too many failed login attempts. Please try again in {remainingMinutes} minute(s)."
+                : "Account is locked due to too many failed login attempts. Please try again later.";
+
+            return Result<AuthenticationDto>.Failure(
+                message,
+                ErrorCodes.User.AccountLocked);
+        }
+
         // Check password
         var isValidPassword = await identityService.CheckPasswordAsync(
             request.Email,
@@ -46,9 +64,9 @@ public class LoginHandler(
         if (!isValidPassword)
         {
             // Increment failed login count
-            var isLockedOut = await identityService.IncrementAccessFailedCountAsync(userInfo.Id, ct);
+            var shouldLockout = await identityService.IncrementAccessFailedCountAsync(userInfo.Id, ct);
 
-            if (isLockedOut)
+            if (shouldLockout)
             {
                 return Result<AuthenticationDto>.Failure(
                     "Account locked due to too many failed login attempts.",

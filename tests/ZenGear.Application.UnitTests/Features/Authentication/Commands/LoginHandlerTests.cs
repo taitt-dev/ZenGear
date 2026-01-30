@@ -265,4 +265,128 @@ public class LoginHandlerTests
         result.ErrorCode.Should().Be(ErrorCodes.User.AccountLocked);
         result.Errors.Should().Contain("Account locked due to too many failed login attempts.");
     }
+
+    [Fact]
+    public async Task Handle_WhenAccountIsLockedOut_ShouldCheckLockoutBeforePassword()
+    {
+        // Arrange
+        var command = new LoginCommand
+        {
+            Email = "test@example.com",
+            Password = "CorrectPassword123!"
+        };
+
+        var userInfo = new UserInfo
+        {
+            Id = 1L,
+            ExternalId = "usr_test123",
+            Email = command.Email,
+            FirstName = "John",
+            LastName = "Doe",
+            AvatarUrl = null,
+            Status = UserStatus.Active,
+            EmailConfirmed = true,
+            Roles = ["Customer"],
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        var lockoutEnd = DateTimeOffset.UtcNow.AddMinutes(10);
+
+        _identityServiceMock
+            .Setup(x => x.GetByEmailAsync(command.Email, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(userInfo);
+
+        _identityServiceMock
+            .Setup(x => x.IsLockedOutAsync(userInfo.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        _identityServiceMock
+            .Setup(x => x.GetLockoutEndAsync(userInfo.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(lockoutEnd);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Succeeded.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.User.AccountLocked);
+        result.Errors.Should().ContainMatch("*locked*");
+
+        // Verify password was NOT checked
+        _identityServiceMock.Verify(
+            x => x.CheckPasswordAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WithSuccessfulLogin_ShouldResetFailedCount()
+    {
+        // Arrange
+        var command = new LoginCommand
+        {
+            Email = "test@example.com",
+            Password = "SecurePass123!"
+        };
+
+        var userInfo = new UserInfo
+        {
+            Id = 1L,
+            ExternalId = "usr_test123",
+            Email = command.Email,
+            FirstName = "John",
+            LastName = "Doe",
+            AvatarUrl = null,
+            Status = UserStatus.Active,
+            EmailConfirmed = true,
+            Roles = ["Customer"],
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        _identityServiceMock
+            .Setup(x => x.GetByEmailAsync(command.Email, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(userInfo);
+
+        _identityServiceMock
+            .Setup(x => x.IsLockedOutAsync(userInfo.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _identityServiceMock
+            .Setup(x => x.CheckPasswordAsync(command.Email, command.Password, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        _tokenServiceMock
+            .Setup(x => x.GenerateAccessToken(
+                It.IsAny<long>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string[]>()))
+            .Returns("access-token");
+
+        _tokenServiceMock
+            .Setup(x => x.GenerateRefreshToken())
+            .Returns("refresh-token");
+
+        _tokenServiceMock
+            .Setup(x => x.GetAccessTokenExpiration())
+            .Returns(DateTimeOffset.UtcNow.AddHours(1));
+
+        _tokenServiceMock
+            .Setup(x => x.GetRefreshTokenExpiration())
+            .Returns(DateTimeOffset.UtcNow.AddDays(7));
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Succeeded.Should().BeTrue();
+
+        // Verify failed count was reset
+        _identityServiceMock.Verify(
+            x => x.ResetAccessFailedCountAsync(userInfo.Id, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 }
+
